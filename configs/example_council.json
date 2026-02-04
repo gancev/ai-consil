@@ -1,0 +1,30 @@
+{
+  "agents": [
+    {
+      "id": "analyst-1",
+      "role": "analyst",
+      "system_prompt": null,
+      "provider": "mock",
+      "model": "mock-v1"
+    },
+    {
+      "id": "skeptic-1",
+      "role": "skeptic",
+      "system_prompt": null,
+      "provider": "mock",
+      "model": "mock-v1"
+    },
+    {
+      "id": "advocate-1",
+      "role": "advocate",
+      "system_prompt": null,
+      "provider": "mock",
+      "model": "mock-v1"
+    }
+  ],
+  "rounds": 2,
+  "max_questions_per_agent": 2,
+  "voting_schedule": "each_round",
+  "consensus_threshold": 0.67,
+  "trace": true
+}

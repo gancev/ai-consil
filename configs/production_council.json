@@ -1,0 +1,33 @@
+{
+  "agents": [
+    {
+      "id": "analyst",
+      "role": "analyst",
+      "provider": "openai",
+      "model": "gpt-4o"
+    },
+    {
+      "id": "skeptic",
+      "role": "skeptic",
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-20250514"
+    },
+    {
+      "id": "pragmatist",
+      "role": "pragmatist",
+      "provider": "gemini",
+      "model": "gemini-1.5-pro"
+    },
+    {
+      "id": "innovator",
+      "role": "innovator",
+      "provider": "openai",
+      "model": "gpt-4o"
+    }
+  ],
+  "rounds": 3,
+  "max_questions_per_agent": 2,
+  "voting_schedule": "each_round",
+  "consensus_threshold": 0.75,
+  "trace": true
+}
