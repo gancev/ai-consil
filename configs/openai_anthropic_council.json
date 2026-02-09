@@ -1,0 +1,27 @@
+{
+  "agents": [
+    {
+      "id": "analyst",
+      "role": "analyst",
+      "provider": "openai",
+      "model": "gpt-4o"
+    },
+    {
+      "id": "skeptic",
+      "role": "skeptic",
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-20250514"
+    },
+    {
+      "id": "pragmatist",
+      "role": "pragmatist",
+      "provider": "openai",
+      "model": "gpt-4o"
+    }
+  ],
+  "rounds": 2,
+  "max_questions_per_agent": 2,
+  "voting_schedule": "each_round",
+  "consensus_threshold": 0.67,
+  "trace": true
+}

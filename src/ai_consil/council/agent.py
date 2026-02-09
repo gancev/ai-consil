@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
-from ai_consil.api.schemas import AgentConfig, VotePosition
+from ai_consil.api.schemas import AgentConfig, DEFAULT_VOTE_OPTIONS
 from ai_consil.council.roles import (
     ANALYSIS_PROMPT_TEMPLATE,
     ANSWER_PROMPT_TEMPLATE,
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 class ParsedVote:
     """Parsed vote from agent response."""
 
-    position: VotePosition
+    position: str
     confidence: float
     reasoning: str
 
@@ -94,6 +94,7 @@ class CouncilAgent:
             self._adapter = get_provider(
                 self.config.provider,
                 self.config.model,
+                **self.config.provider_config,
             )
         return self._adapter
 
@@ -230,38 +231,50 @@ class CouncilAgent:
         self,
         topic: str,
         discussion: str,
+        vote_options: list[str] | None = None,
     ) -> ParsedVote:
         """Cast a vote on the topic.
 
         Args:
             topic: The topic being voted on.
             discussion: Summary of the discussion.
+            vote_options: Available vote options. Defaults to support/oppose/abstain.
 
         Returns:
             The agent's parsed vote.
         """
+        options = vote_options or DEFAULT_VOTE_OPTIONS
         prompt = VOTE_PROMPT_TEMPLATE.format(
             topic=topic,
             discussion=discussion,
             role=self.role,
+            vote_options="|".join(options),
         )
 
         messages = self._build_messages(prompt)
         response = await self._complete(messages)
 
-        return self._parse_vote(response)
+        return self._parse_vote(response, options)
 
-    def _parse_vote(self, response: str) -> ParsedVote:
+    def _parse_vote(self, response: str, vote_options: list[str] | None = None) -> ParsedVote:
         """Parse a vote response from the agent.
 
         Expected format:
-        VOTE: support|oppose|abstain
+        VOTE: <one of vote_options>
         CONFIDENCE: 0.0-1.0
         REASONING: text
 
         Also handles mock provider format:
-        VOTE:support|CONFIDENCE:0.75|REASONING:text
+        VOTE:buy|CONFIDENCE:0.75|REASONING:text
+
+        Args:
+            response: Raw response text from the agent.
+            vote_options: Valid vote options. Defaults to support/oppose/abstain.
         """
+        options = vote_options or DEFAULT_VOTE_OPTIONS
+        options_lower = [o.lower() for o in options]
+        default_position = options_lower[-1]  # Last option as fallback
+
         # Try pipe-delimited format (mock provider)
         if "|" in response and "VOTE:" in response:
             parts = response.split("|")
@@ -271,14 +284,11 @@ class CouncilAgent:
                     key, value = part.split(":", 1)
                     vote_data[key.strip().upper()] = value.strip()
 
-            position_str = vote_data.get("VOTE", "abstain").lower()
+            position_str = vote_data.get("VOTE", default_position).lower()
             confidence_str = vote_data.get("CONFIDENCE", "0.5")
             reasoning = vote_data.get("REASONING", "No reasoning provided.")
 
-            try:
-                position = VotePosition(position_str)
-            except ValueError:
-                position = VotePosition.ABSTAIN
+            position = position_str if position_str in options_lower else default_position
 
             try:
                 confidence = float(confidence_str)
@@ -293,7 +303,7 @@ class CouncilAgent:
             )
 
         # Try line-by-line format
-        position = VotePosition.ABSTAIN
+        position = default_position
         confidence = 0.5
         reasoning = "No reasoning provided."
 
@@ -302,10 +312,8 @@ class CouncilAgent:
             line = line.strip()
             if line.upper().startswith("VOTE:"):
                 vote_str = line.split(":", 1)[1].strip().lower()
-                try:
-                    position = VotePosition(vote_str)
-                except ValueError:
-                    pass
+                if vote_str in options_lower:
+                    position = vote_str
             elif line.upper().startswith("CONFIDENCE:"):
                 try:
                     confidence = float(line.split(":", 1)[1].strip())

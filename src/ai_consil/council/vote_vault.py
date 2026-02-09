@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
-from ai_consil.api.schemas import Vote, VotePosition, VoteTally
+from ai_consil.api.schemas import Vote, VoteTally
 
 
 @dataclass
@@ -29,7 +29,7 @@ class SealedVote:
     vote_id: str
     agent_id: str
     round: int
-    position: VotePosition
+    position: str
     confidence: float
     reasoning: str
     recorded_at: str
@@ -93,7 +93,7 @@ class VoteVault:
         self,
         agent_id: str,
         round_num: int,
-        position: VotePosition,
+        position: str,
         confidence: float,
         reasoning: str,
     ) -> VoteReceipt:
@@ -208,15 +208,11 @@ class VoteVault:
                 for sv in round_votes.votes.values()
             ]
 
-            # Calculate tally
-            tally = VoteTally()
+            # Calculate tally dynamically
+            counts: dict[str, int] = {}
             for vote in votes:
-                if vote.position == VotePosition.SUPPORT:
-                    tally.support += 1
-                elif vote.position == VotePosition.OPPOSE:
-                    tally.oppose += 1
-                else:
-                    tally.abstain += 1
+                counts[vote.position] = counts.get(vote.position, 0) + 1
+            tally = VoteTally(counts=counts)
 
             return votes, tally
 

@@ -156,12 +156,9 @@ def _print_event(event: Any) -> None:
         typer.echo(f"\n[{timestamp}] Voting closed for round {event.round}")
     elif event_type == "vote_reveal":
         typer.echo(f"\n[{timestamp}] Vote reveal for round {event.round}:")
-        if event.tally:
-            typer.echo(
-                f"  Support: {event.tally.support}, "
-                f"Oppose: {event.tally.oppose}, "
-                f"Abstain: {event.tally.abstain}"
-            )
+        if event.tally and event.tally.counts:
+            parts = [f"{option}: {count}" for option, count in event.tally.counts.items()]
+            typer.echo(f"  {', '.join(parts)}")
     elif event_type == "synthesis":
         typer.echo(f"\n[{timestamp}] Synthesis:")
         typer.echo(f"  {event.content[:300]}..." if event.content else "  (empty)")

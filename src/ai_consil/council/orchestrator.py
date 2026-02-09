@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, AsyncIterator
 
 from ai_consil.api.schemas import (
+    DEFAULT_VOTE_OPTIONS,
     AgentAnalysis,
     AgentConfig,
     CouncilConfig,
@@ -382,9 +383,10 @@ class CouncilOrchestrator:
         discussion = self._build_discussion_summary(self.state)
 
         # Collect votes from all agents (in parallel)
+        vote_options = self.config.vote_options or DEFAULT_VOTE_OPTIONS
         vote_tasks = []
         for agent_id, agent in self.agents.items():
-            vote_tasks.append(self._collect_vote(agent, round_num, discussion))
+            vote_tasks.append(self._collect_vote(agent, round_num, discussion, vote_options))
 
         await asyncio.gather(*vote_tasks)
 
@@ -402,11 +404,12 @@ class CouncilOrchestrator:
         # Reveal votes (now safe)
         votes, tally = self.vote_vault.reveal_votes(round_num)
 
-        # Check for consensus
-        total_votes = tally.support + tally.oppose + tally.abstain
+        # Check for consensus (plurality: top option vs threshold)
+        total_votes = sum(tally.counts.values())
         if total_votes > 0:
-            support_ratio = tally.support / total_votes
-            self.state.consensus_reached = support_ratio >= self.config.consensus_threshold
+            max_count = max(tally.counts.values())
+            top_ratio = max_count / total_votes
+            self.state.consensus_reached = top_ratio >= self.config.consensus_threshold
 
         round_state.vote_result = RoundVoteResult(
             round=round_num,
@@ -430,6 +433,7 @@ class CouncilOrchestrator:
         agent: CouncilAgent,
         round_num: int,
         discussion: str,
+        vote_options: list[str] | None = None,
     ) -> None:
         """Collect a vote from an agent."""
         if self.state is None:
@@ -439,6 +443,7 @@ class CouncilOrchestrator:
             parsed_vote = await agent.vote(
                 topic=self.state.topic,
                 discussion=discussion,
+                vote_options=vote_options,
             )
 
             self.vote_vault.submit_vote(
@@ -470,7 +475,7 @@ class CouncilOrchestrator:
             if round_state.vote_result:
                 for vote in round_state.vote_result.votes:
                     positions.append(
-                        f"{vote.agent_id}: {vote.position.value} "
+                        f"{vote.agent_id}: {vote.position} "
                         f"(confidence: {vote.confidence}) - {vote.reasoning}"
                     )
 
@@ -478,7 +483,7 @@ class CouncilOrchestrator:
         final_tally = "No votes recorded"
         if self.state.rounds and self.state.rounds[-1].vote_result:
             tally = self.state.rounds[-1].vote_result.tally
-            final_tally = f"Support: {tally.support}, Oppose: {tally.oppose}, Abstain: {tally.abstain}"
+            final_tally = ", ".join(f"{k}: {v}" for k, v in tally.counts.items())
 
         # Build synthesis prompt
         prompt = SYNTHESIS_PROMPT_TEMPLATE.format(

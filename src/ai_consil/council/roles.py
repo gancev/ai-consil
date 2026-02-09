@@ -158,7 +158,7 @@ Discussion summary:
 {discussion}
 
 Cast your vote in EXACTLY this format:
-VOTE: [support|oppose|abstain]
+VOTE: [{vote_options}]
 CONFIDENCE: [0.0-1.0]
 REASONING: [1-2 sentences explaining your vote]
 

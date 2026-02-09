@@ -19,11 +19,15 @@ class VotingSchedule(str, Enum):
 
 
 class VotePosition(str, Enum):
-    """Possible vote positions."""
+    """Default vote positions (used when vote_options is not configured)."""
 
     SUPPORT = "support"
     OPPOSE = "oppose"
     ABSTAIN = "abstain"
+
+
+# Default vote options when none are configured
+DEFAULT_VOTE_OPTIONS = ["support", "oppose", "abstain"]
 
 
 class AgentConfig(BaseModel):
@@ -34,6 +38,9 @@ class AgentConfig(BaseModel):
     system_prompt: str | None = Field(None, description="Custom system prompt override")
     provider: str = Field("openai", description="LLM provider name")
     model: str = Field("gpt-4o", description="Model identifier")
+    provider_config: dict[str, Any] = Field(
+        default_factory=dict, description="Provider-specific configuration (e.g., web_search, reasoning_effort)"
+    )
 
     @field_validator("id")
     @classmethod
@@ -54,6 +61,10 @@ class CouncilConfig(BaseModel):
     )
     consensus_threshold: float = Field(
         0.67, ge=0.0, le=1.0, description="Threshold for consensus"
+    )
+    vote_options: list[str] | None = Field(
+        None,
+        description="Custom vote options (e.g., ['buy', 'sell', 'hold']). Defaults to ['support', 'oppose', 'abstain']",
     )
     trace: bool = Field(False, description="Include detailed trace in response")
 
@@ -140,17 +151,15 @@ class Vote(BaseModel):
     """A single agent's vote."""
 
     agent_id: str
-    position: VotePosition
+    position: str
     confidence: float = Field(ge=0.0, le=1.0)
     reasoning: str
 
 
 class VoteTally(BaseModel):
-    """Vote tally for a round."""
+    """Vote tally for a round. Supports dynamic vote options."""
 
-    support: int = 0
-    oppose: int = 0
-    abstain: int = 0
+    counts: dict[str, int] = Field(default_factory=dict)
 
 
 class RoundVoteResult(BaseModel):

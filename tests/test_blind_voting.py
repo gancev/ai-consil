@@ -7,7 +7,7 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
-from ai_consil.api.schemas import CouncilEvent, CouncilEventType, VotePosition, VoteTally
+from ai_consil.api.schemas import CouncilEvent, CouncilEventType, VoteTally
 from ai_consil.council.sanitizer import BlindVotingSanitizer
 from ai_consil.council.vote_vault import (
     DuplicateVoteError,
@@ -26,7 +26,7 @@ class TestVoteVault:
         receipt = vault.submit_vote(
             agent_id="agent-1",
             round_num=1,
-            position=VotePosition.SUPPORT,
+            position="support",
             confidence=0.8,
             reasoning="Test reasoning",
         )
@@ -45,7 +45,7 @@ class TestVoteVault:
         vault.submit_vote(
             agent_id="agent-1",
             round_num=1,
-            position=VotePosition.SUPPORT,
+            position="support",
             confidence=0.8,
             reasoning="Test",
         )
@@ -59,14 +59,14 @@ class TestVoteVault:
         vault.submit_vote(
             agent_id="agent-1",
             round_num=1,
-            position=VotePosition.SUPPORT,
+            position="support",
             confidence=0.8,
             reasoning="Support reasoning",
         )
         vault.submit_vote(
             agent_id="agent-2",
             round_num=1,
-            position=VotePosition.OPPOSE,
+            position="oppose",
             confidence=0.6,
             reasoning="Oppose reasoning",
         )
@@ -75,9 +75,8 @@ class TestVoteVault:
         votes, tally = vault.reveal_votes(1)
 
         assert len(votes) == 2
-        assert tally.support == 1
-        assert tally.oppose == 1
-        assert tally.abstain == 0
+        assert tally.counts.get("support") == 1
+        assert tally.counts.get("oppose") == 1
 
     def test_no_voting_after_close(self) -> None:
         """Test that voting after close raises error."""
@@ -88,7 +87,7 @@ class TestVoteVault:
             vault.submit_vote(
                 agent_id="agent-1",
                 round_num=1,
-                position=VotePosition.SUPPORT,
+                position="support",
                 confidence=0.8,
                 reasoning="Test",
             )
@@ -99,7 +98,7 @@ class TestVoteVault:
         vault.submit_vote(
             agent_id="agent-1",
             round_num=1,
-            position=VotePosition.SUPPORT,
+            position="support",
             confidence=0.8,
             reasoning="First vote",
         )
@@ -108,7 +107,7 @@ class TestVoteVault:
             vault.submit_vote(
                 agent_id="agent-1",
                 round_num=1,
-                position=VotePosition.OPPOSE,
+                position="oppose",
                 confidence=0.7,
                 reasoning="Second vote",
             )
@@ -121,7 +120,7 @@ class TestVoteVault:
         vault.submit_vote(
             agent_id="agent-1",
             round_num=1,
-            position=VotePosition.SUPPORT,
+            position="support",
             confidence=0.8,
             reasoning="Test",
         )
@@ -137,7 +136,7 @@ class TestVoteVault:
         vault.submit_vote(
             agent_id="agent-1",
             round_num=1,
-            position=VotePosition.SUPPORT,
+            position="support",
             confidence=0.8,
             reasoning="Test",
         )
@@ -146,7 +145,7 @@ class TestVoteVault:
         vault.submit_vote(
             agent_id="agent-2",
             round_num=1,
-            position=VotePosition.OPPOSE,
+            position="oppose",
             confidence=0.7,
             reasoning="Test",
         )
@@ -166,7 +165,7 @@ class TestBlindVotingSanitizer:
             timestamp="2025-01-01T00:00:00Z",
             round=1,
             votes=[],
-            tally=VoteTally(support=1, oppose=0, abstain=0),
+            tally=VoteTally(counts={"support": 1}),
         )
 
         # Before closing, event should be blocked
@@ -190,7 +189,7 @@ class TestBlindVotingSanitizer:
             agent_id="agent-1",
             content="Analysis content",
             votes=[],  # Should be stripped
-            tally=VoteTally(support=1, oppose=0, abstain=0),  # Should be stripped
+            tally=VoteTally(counts={"support": 1}),  # Should be stripped
         )
 
         result = sanitizer.sanitize_event(event)
@@ -236,13 +235,13 @@ class TestBlindVotingSanitizer:
             timestamp="2025-01-01T00:00:00Z",
             round=1,
             votes=[],
-            tally=VoteTally(support=2, oppose=1, abstain=0),
+            tally=VoteTally(counts={"support": 2, "oppose": 1}),
         )
 
         result = sanitizer.sanitize_event(event)
         assert result is not None
         assert result.tally is not None
-        assert result.tally.support == 2
+        assert result.tally.counts.get("support") == 2
 
     def test_sanitizer_records_violations(self) -> None:
         """Test that sanitizer records blocked events."""

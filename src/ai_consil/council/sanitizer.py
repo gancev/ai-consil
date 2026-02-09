@@ -32,11 +32,10 @@ class BlindVotingSanitizer:
     # Patterns that might indicate vote information in content
     VOTE_PATTERNS = [
         re.compile(r"\bvotes?\s*:\s*\d+", re.IGNORECASE),
-        re.compile(r"\b(support|oppose|abstain)\s*:\s*\d+", re.IGNORECASE),
         re.compile(r"\btally\b.*\d+", re.IGNORECASE),
-        re.compile(r"\b\d+\s*(votes?|in favor|against|abstain)", re.IGNORECASE),
+        re.compile(r"\b\d+\s*votes?\b", re.IGNORECASE),
         re.compile(r"(current|vote)\s+(vote|tally|count)", re.IGNORECASE),
-        re.compile(r"(voted|voting)\s+(for|against|to\s+support|to\s+oppose)", re.IGNORECASE),
+        re.compile(r"(voted|voting)\s+(for|against)", re.IGNORECASE),
     ]
 
     def __init__(self) -> None:

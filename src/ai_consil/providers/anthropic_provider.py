@@ -77,11 +77,20 @@ class AnthropicProviderAdapter(ProviderAdapter):
         if system_prompt:
             kwargs["system"] = system_prompt
 
+        if self.config.get("web_search"):
+            kwargs["tools"] = [{
+                "type": "web_search_20250305",
+                "name": "web_search",
+                "max_uses": self.config.get("max_searches", 5),
+            }]
+
         response = await client.messages.create(**kwargs)
 
+        # Extract text from all text blocks (web search responses have multiple blocks)
         content = ""
         if response.content:
-            content = response.content[0].text
+            text_parts = [block.text for block in response.content if hasattr(block, "text")]
+            content = "\n".join(text_parts)
 
         usage = {
             "prompt_tokens": response.usage.input_tokens,
@@ -113,6 +122,13 @@ class AnthropicProviderAdapter(ProviderAdapter):
         }
         if system_prompt:
             kwargs["system"] = system_prompt
+
+        if self.config.get("web_search"):
+            kwargs["tools"] = [{
+                "type": "web_search_20250305",
+                "name": "web_search",
+                "max_uses": self.config.get("max_searches", 5),
+            }]
 
         async with client.messages.stream(**kwargs) as stream:
             async for text in stream.text_stream:
