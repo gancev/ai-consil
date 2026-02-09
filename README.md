@@ -306,6 +306,36 @@ register_provider("my-provider", MyCustomProvider, aliases=["mp"])
 # {"provider": "my-provider", "model": "..."}
 ```
 
+## Genesis
+
+This project was created with the following prompt:
+
+> You are an expert Python engineer. Help me build an open-source (MIT) project named **ai-consil** using the Strands Agents Python SDK.
+>
+> **Non-negotiables:**
+> - **BLIND VOTING ONLY**: In any round where voting occurs, agents MUST NOT see any other agent's vote, vote tally, or partial results until AFTER voting is closed for that round. Orchestrator is NON-VOTING (zero voting power) and only coordinates + summarizes.
+> - Agents can ask DIRECTED questions to specific agents, up to configured limits.
+> - All Q&A is visible to all agents (but votes remain hidden until reveal).
+> - Multi-round execution with configurable rules: number of rounds, max number of questions per agent (per round), voting schedule (each round OR start+end OR end-only).
+> - Inputs: user prompt is text, plus optional references (images/URLs/videos) included as references in the input. For v0.1 there is NO web browsing/tooling; URLs/videos are just text references.
+> - Output artifacts: final answer + vote results + ledger/transcript as JSON in ./out.
+>
+> **CRITICAL PRODUCT REQUIREMENT: API-FIRST + STANDARD CHAT COMPLETIONS + STREAMING**
+> The project MUST expose an HTTP API so clients can use it like a normal Chat Completions endpoint and see the council "reasoning" (meaning the council transcript/events) via standard chat + streaming.
+> - Implement an OpenAI-compatible endpoint: `POST /v1/chat/completions`
+>   - Accepts: model, messages[], stream:boolean, temperature, max_tokens, and an extra field `council` (config inline OR pointer to config file)
+>   - Returns: OpenAI-like response JSON for non-stream
+>   - For stream=true: stream Server-Sent Events (SSE) with `data: {json}\n\n` chunks similar to OpenAI
+> - The "reasoning" MUST be exposed as COUNCIL TRACE EVENTS, not hidden chain-of-thought.
+>   - During streaming, emit intermediate council events (analysis summaries, Q&A, vote reveal) as structured chunks.
+>   - Ensure BLIND VOTING: NEVER stream votes/tallies before the vote is closed and reveal is allowed.
+> - Keep the final assistant message content as the final consolidated answer from orchestrator.
+> - Also include an optional `trace` output:
+>   - If request includes `council.trace=true`, include `council_trace` in response (non-stream) or emit trace chunks (stream).
+>   - Trace must include event types + timestamps + agent ids + payloads, but must not leak votes early.
+>
+> **Tech stack (Python):** Python 3.11+, Strands Agents (Python SDK), Pydantic v2, FastAPI + Uvicorn, Typer for CLI, Pytest for tests.
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
