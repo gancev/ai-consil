@@ -85,6 +85,9 @@ def run(
         "./out", "--output", "-o", help="Output directory for artifacts"
     ),
     stream: bool = typer.Option(False, "--stream", "-s", help="Stream output"),
+    transcript: bool = typer.Option(
+        False, "--transcript", "-t", help="Generate a human-readable markdown transcript report"
+    ),
 ) -> None:
     """Run a council deliberation from the command line."""
     from ai_consil.config.loader import get_default_config, load_config_from_file
@@ -115,13 +118,26 @@ def run(
     # Run deliberation
     async def _run():
         if stream:
+            collected_events: list = []
             async for event in orchestrator.run_stream(topic):
                 store.append_event(orchestrator.session_id, event)
+                collected_events.append(event)
                 _print_event(event)
-            return orchestrator.state.final_answer if orchestrator.state else ""
+            final = orchestrator.state.final_answer if orchestrator.state else ""
+            if transcript:
+                report_path = store.write_transcript_report(
+                    orchestrator.session_id, collected_events, topic
+                )
+                typer.echo(f"\nTranscript report: {report_path}")
+            return final
         else:
-            final_answer, trace = await orchestrator.run()
+            final_answer, trace, events = await orchestrator.run(topic)
             store.write_vote_ledger(orchestrator.session_id, trace)
+            if transcript:
+                report_path = store.write_transcript_report(
+                    orchestrator.session_id, events, topic
+                )
+                typer.echo(f"\nTranscript report: {report_path}")
             return final_answer
 
     final_answer = asyncio.run(_run())

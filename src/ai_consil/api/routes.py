@@ -220,7 +220,7 @@ async def _handle_non_streaming_council(
     """Handle non-streaming council deliberation."""
     try:
         # Run deliberation
-        final_answer, trace = await orchestrator.run(topic)
+        final_answer, trace, _events = await orchestrator.run(topic)
 
         # Store artifacts
         store.write_vote_ledger(orchestrator.session_id, trace)

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from ai_consil.api.schemas import CouncilConfig, CouncilEvent, CouncilTrace
+from ai_consil.storage.transcript_formatter import format_transcript_report
 
 
 @dataclass
@@ -21,6 +22,7 @@ class ArtifactPaths:
     vote_ledger: Path
     final_answer: Path
     metadata: Path
+    transcript_report: Path
 
 
 class ArtifactStore:
@@ -49,6 +51,7 @@ class ArtifactStore:
             vote_ledger=session_dir / "vote_ledger.json",
             final_answer=session_dir / "final_answer.md",
             metadata=session_dir / "metadata.json",
+            transcript_report=session_dir / "transcript_report.md",
         )
 
     def append_event(self, session_id: str, event: CouncilEvent) -> None:
@@ -136,6 +139,30 @@ class ArtifactStore:
 
         with open(paths.final_answer, "w") as f:
             f.write(content)
+
+    def write_transcript_report(
+        self,
+        session_id: str,
+        events: list[CouncilEvent],
+        topic: str,
+    ) -> str:
+        """Write a human-readable markdown transcript report.
+
+        Args:
+            session_id: The session ID.
+            events: List of council events from the deliberation.
+            topic: The original topic/question.
+
+        Returns:
+            Path to the written report file.
+        """
+        paths = self._ensure_session_dir(session_id)
+        report = format_transcript_report(events, topic, session_id)
+
+        with open(paths.transcript_report, "w") as f:
+            f.write(report)
+
+        return str(paths.transcript_report)
 
     def write_metadata(
         self,

@@ -154,14 +154,14 @@ class CouncilOrchestrator:
 
         return "\n".join(parts)
 
-    async def run(self, topic: str) -> tuple[str, CouncilTrace]:
+    async def run(self, topic: str) -> tuple[str, CouncilTrace, list[CouncilEvent]]:
         """Run the full council deliberation.
 
         Args:
             topic: The topic/question to deliberate on.
 
         Returns:
-            Tuple of (final answer, council trace).
+            Tuple of (final answer, council trace, events list).
         """
         events: list[CouncilEvent] = []
         async for event in self.run_stream(topic):
@@ -172,7 +172,7 @@ class CouncilOrchestrator:
             raise RuntimeError("Session state not initialized")
 
         trace = self._build_trace()
-        return self.state.final_answer, trace
+        return self.state.final_answer, trace, events
 
     async def run_stream(self, topic: str) -> AsyncIterator[CouncilEvent]:
         """Run the council deliberation with streaming events.
