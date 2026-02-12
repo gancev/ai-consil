@@ -123,6 +123,13 @@ Topic: {topic}
 
 {context}
 
+IMPORTANT: If prior round discussion is shown above, you MUST:
+- Build on the discussion so far — do NOT repeat points you or others have already made
+- Respond to, challenge, or refine arguments raised by other agents
+- Introduce new evidence, angles, or considerations not yet covered
+- If your position has shifted based on what you've heard, explain why
+- If your position has NOT changed, explain what new reasoning or evidence reinforces it
+
 Provide your analysis in 2-4 paragraphs. Consider the key factors, implications, and your perspective based on your assigned role."""
 
 QUESTION_PROMPT_TEMPLATE = """You are participating in a council deliberation. Based on the discussion so far, you may ask a directed question to another council member.
