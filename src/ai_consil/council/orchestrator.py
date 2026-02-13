@@ -106,8 +106,9 @@ class CouncilOrchestrator:
                 max_tokens=max_tokens,
             )
 
-        # Orchestrator's own provider (for synthesis)
-        self._synth_provider = get_provider("mock", "synthesis-v1")
+        # Orchestrator's provider for synthesis (use first agent's provider)
+        first_agent = config.agents[0]
+        self._synth_provider = get_provider(first_agent.provider, first_agent.model)
 
     def _create_event(
         self,
@@ -462,14 +463,14 @@ class CouncilOrchestrator:
         if self.state is None:
             raise RuntimeError("Session state not initialized")
 
-        # Build round summaries
+        # Build round summaries with full analyses (no truncation)
         round_summaries = []
         positions = []
 
         for round_state in self.state.rounds:
             summary = f"Round {round_state.round_num}:\n"
             for analysis in round_state.analyses:
-                summary += f"  {analysis.agent_id}: {analysis.content[:200]}...\n"
+                summary += f"  {analysis.agent_id}:\n{analysis.content}\n\n"
             round_summaries.append(summary)
 
             if round_state.vote_result:
@@ -493,7 +494,7 @@ class CouncilOrchestrator:
             positions="\n".join(positions) if positions else "No positions recorded",
         )
 
-        # Generate synthesis (using mock provider or configured orchestrator provider)
+        # Generate synthesis using first agent's provider
         messages = [
             ProviderMessage(role="system", content=ORCHESTRATOR_PROMPT),
             ProviderMessage(role="user", content=prompt),

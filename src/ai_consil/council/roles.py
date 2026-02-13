@@ -171,7 +171,7 @@ REASONING: [1-2 sentences explaining your vote]
 
 Your vote must reflect your analysis and role as {role}."""
 
-SYNTHESIS_PROMPT_TEMPLATE = """As the Orchestrator, synthesize the council's deliberation into a final answer.
+SYNTHESIS_PROMPT_TEMPLATE = """As the Orchestrator, synthesize the council's deliberation into a concise final summary.
 
 Topic: {topic}
 
@@ -184,10 +184,13 @@ Final vote tally:
 Individual positions:
 {positions}
 
-Provide a clear, comprehensive answer that:
-1. Addresses the original question/topic
-2. Reflects the council's collective wisdom
-3. Notes key agreements and disagreements
-4. Presents actionable conclusions where appropriate
+Write a synthesis in 300 words or less that:
+1. States the vote outcome (tally and whether consensus was reached)
+2. Summarizes each distinct position and who held it — capture genuine disagreements, not just shades of agreement
+3. Highlights the strongest argument from each side
+4. Gives a clear bottom-line conclusion
 
-Do not add your own opinion - only synthesize what the council has determined."""
+Rules:
+- Do NOT add your own opinion — only synthesize what the council has determined
+- Do NOT use structured vote format (VOTE:/CONFIDENCE:/REASONING:) — write in plain prose
+- Be direct and concise — no filler, no preamble"""
