@@ -58,10 +58,18 @@ cli_app = typer.Typer(
 def serve(
     host: str = typer.Option("0.0.0.0", "--host", "-h", help="Host to bind to"),
     port: int = typer.Option(8000, "--port", "-p", help="Port to bind to"),
+    config: str = typer.Option(
+        None, "--config", "-c", help="Default council config JSON file"
+    ),
     reload: bool = typer.Option(False, "--reload", "-r", help="Enable auto-reload"),
     log_level: str = typer.Option("info", "--log-level", "-l", help="Log level"),
 ) -> None:
     """Start the AI Council API server."""
+    if config:
+        import os
+        os.environ["AI_CONSIL_DEFAULT_CONFIG"] = config
+        typer.echo(f"Default config: {config}")
+
     typer.echo(f"Starting AI Council server v{__version__}")
     typer.echo(f"Listening on http://{host}:{port}")
     typer.echo(f"API docs: http://{host}:{port}/docs")

@@ -90,6 +90,9 @@ def resolve_config(
         ConfigError: If validation fails.
     """
     if config is None:
+        default_path = os.environ.get("AI_CONSIL_DEFAULT_CONFIG")
+        if default_path:
+            return load_config_from_file(default_path)
         return None
 
     if isinstance(config, CouncilConfig):

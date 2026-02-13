@@ -253,6 +253,23 @@ async def _handle_non_streaming_council(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# List models (OpenAI-compatible)
+@router.get("/v1/models")
+async def list_models() -> dict[str, Any]:
+    """List available models (OpenAI-compatible)."""
+    return {
+        "object": "list",
+        "data": [
+            {
+                "id": "council",
+                "object": "model",
+                "created": 0,
+                "owned_by": "ai-consil",
+            }
+        ],
+    }
+
+
 # Health check endpoint
 @router.get("/health")
 async def health_check() -> dict[str, str]:

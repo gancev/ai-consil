@@ -93,30 +93,58 @@ async def stream_council_events(
     initial_chunk = create_content_chunk(session_id, role="assistant")
     yield format_sse_event(initial_chunk.model_dump())
 
-    final_content = ""
+    async def _stream_text(text: str) -> AsyncIterator[str]:
+        chunk_size = 50
+        for i in range(0, len(text), chunk_size):
+            chunk_content = text[i:i + chunk_size]
+            content_chunk = create_content_chunk(session_id, content=chunk_content)
+            yield format_sse_event(content_chunk.model_dump())
 
     async for event in events:
         # Emit council event (if trace enabled)
         if include_trace:
             yield format_sse_event(event.model_dump())
 
-        # Handle special events
-        if event.event_type.value == "synthesis":
-            # The synthesis content is the final answer
-            final_content = event.content or ""
+        etype = event.event_type.value
 
-        elif event.event_type.value == "session_end":
-            # Stream the final content
-            if final_content:
-                # Stream content in chunks for a more natural feel
-                chunk_size = 50
-                for i in range(0, len(final_content), chunk_size):
-                    chunk_content = final_content[i:i + chunk_size]
-                    content_chunk = create_content_chunk(
-                        session_id,
-                        content=chunk_content,
-                    )
-                    yield format_sse_event(content_chunk.model_dump())
+        if etype == "round_start":
+            async for chunk in _stream_text(f"\n\n---\n\n## Round {event.round}\n\n"):
+                yield chunk
+
+        elif etype == "agent_analysis":
+            header = f"### {event.agent_id}\n\n"
+            content = (event.content or "") + "\n\n"
+            async for chunk in _stream_text(header + content):
+                yield chunk
+
+        elif etype == "question":
+            text = f"> **Q: {event.from_agent} → {event.to_agent}**: {event.content}\n\n"
+            async for chunk in _stream_text(text):
+                yield chunk
+
+        elif etype == "answer":
+            text = f"> **A: {event.from_agent} → {event.to_agent}**: {event.content}\n\n"
+            async for chunk in _stream_text(text):
+                yield chunk
+
+        elif etype == "voting_open":
+            async for chunk in _stream_text(f"\n### Voting (Round {event.round})\n\n"):
+                yield chunk
+
+        elif etype == "vote_reveal":
+            if event.tally and event.tally.counts:
+                parts = [f"**{opt}**: {cnt}" for opt, cnt in event.tally.counts.items()]
+                text = "Results: " + " | ".join(parts) + "\n\n"
+            else:
+                text = "Votes revealed.\n\n"
+            async for chunk in _stream_text(text):
+                yield chunk
+
+        elif etype == "synthesis":
+            header = "\n---\n\n## Synthesis\n\n"
+            content = (event.content or "") + "\n"
+            async for chunk in _stream_text(header + content):
+                yield chunk
 
     # Send final chunk with finish reason
     final_chunk = create_content_chunk(
